@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Gallery & Finder</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- Configure Tailwind for custom aesthetics -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'tmdb-blue': '#032541',
+                        'tmdb-green': '#1ed5a9',
+                        'dark-bg': '#1f2937',
+                        'detail-card': '#2d3748',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar styling for a cleaner look */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        
+        /* Style for the detail view overview to manage scroll within the card */
+        .overview-scroll {
+            max-height: 10rem;
+            overflow-y: auto;
+            padding-right: 0.5rem; 
+        }
+
+        /* --- Custom Circular Progress Bar (Rating) --- */
+        .progress-ring {
+            width: 80px;
+            height: 80px;
+        }
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        .rating-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+    </style>
+</head>
+<body class="bg-dark-bg min-h-screen p-4 md:p-8 font-sans text-gray-100">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="text-center mb-10">
+            <h1 class="text-5xl font-extrabold text-tmdb-green tracking-tight mb-2">Movie Gallery & Infinite Search</h1>
+            <p class="text-gray-400 text-lg">Search by Title or Actor and scroll down for endless results.</p>
+        </header>
+
+        <!-- Search Input -->
+        <div class="flex flex-col sm:flex-row gap-3 p-4 bg-gray-800 rounded-xl shadow-2xl mb-8 sticky top-0 z-10 border-b-2 border-tmdb-green/20">
+            <input
+                type="text"
+                id="movieInput"
+                placeholder="Search for a movie title or actor..."
+                class="flex-grow p-3 bg-gray-700 text-white border border-gray-600 rounded-lg focus:ring-2 focus:ring-tmdb-green focus:border-tmdb-green transition duration-200"
+                onkeyup="if(event.key === 'Enter') searchMovie()"
+            >
+            <button
+                onclick="searchMovie()"
+                class="bg-tmdb-green text-tmdb-blue font-bold py-3 px-6 rounded-lg shadow-md hover:bg-opacity-90 transition duration-200 transform hover:scale-[1.02] active:scale-100"
+            >
+                Search
+            </button>
+        </div>
+
+        <!-- Result Display Area -->
+        <div id="resultsContainer" class="min-h-[200px] flex flex-wrap justify-center">
+            <p class="text-gray-500 text-xl w-full text-center mt-16" id="initialMessage">Start by searching for a movie!</p>
+        </div>
+
+        <!-- Notification Modal (Instead of alert()) -->
+        <div id="notificationModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center p-4 z-50">
+            <div class="bg-gray-700 p-6 rounded-xl shadow-2xl max-w-sm w-full border-t-4 border-red-500">
+                <h3 class="text-xl font-bold text-red-400 mb-3">Search Error</h3>
+                <p id="notificationText" class="text-gray-300 mb-4"></p>
+                <button onclick="hideNotification()" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition">
+                    Got It
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // IMPORTANT: The TMDb API Key is embedded here.
+        const TMDB_API_KEY = '37ec0b0f9f14409ef6f559739272b5f1';
+        const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/'; 
+
+        const resultsContainer = document.getElementById('resultsContainer');
+        const initialMessage = document.getElementById('initialMessage');
+        const modal = document.getElementById('notificationModal');
+        const modalText = document.getElementById('notificationText');
+
+        // State variables for infinite scroll
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentQuery = '';
+        let isFetching = false; // Flag to prevent multiple concurrent fetches
+
+        // --- Utility Functions for UI/Error Handling ---
+
+        function showNotification(message) {
+            modalText.textContent = message;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function hideNotification() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function setLoading(isLoading) {
+            if (isLoading && currentPage === 1) {
+                // Full screen loader for initial search
+                resultsContainer.innerHTML = `
+                    <div class="text-center p-8 w-full">
+                        <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-tmdb-green mx-auto mb-4"></div>
+                        <p class="text-tmdb-green">Searching the database...</p>
+                    </div>
+                `;
+                initialMessage.classList.add('hidden');
+            }
+        }
+
+        // --- Utility Functions for API Resilience ---
+        /**
+         * Fetches a URL with exponential backoff and retries to handle transient failures or throttling.
+         */
+        async function fetchWithRetry(url, options = {}, retries = 3) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) {
+                        return response;
+                    }
+                    
+                    if (i === retries - 1) {
+                        throw new Error(`Request failed with status ${response.status} (${response.statusText})`);
+                    }
+                } catch (error) {
+                    if (i === retries - 1) {
+                        throw new Error(`Network error: ${error.message}`);
+                    }
+                }
+
+                // Wait using exponential backoff: 1s, 2s, 4s, ...
+                const delay = Math.min(Math.pow(2, i) * 1000, 8000);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+            throw new Error("Exceeded maximum retries.");
+        }
+
+        // --- API Call Functions ---
+
+        /**
+         * Searches for movies matching the query.
+         */
+        async function fetchSearchResults(query, page) {
+            const url = `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&page=${page}`;
+            const response = await fetchWithRetry(url);
+            const data = await response.json();
+            return {
+                results: data.results || [],
+                totalPages: data.total_pages || 1
+            };
+        }
+
+        /**
+         * Fetches detailed information for a given movie ID.
+         */
+        async function fetchMovieDetails(movieId) {
+            const detailsUrl = `https://api.themoviedb.org/3/movie/${movieId}?api_key=${TMDB_API_KEY}`;
+            const response = await fetchWithRetry(detailsUrl);
+            return response.json();
+        }
+
+        /**
+         * Fetches video information (trailers) for a given movie ID.
+         */
+        async function fetchMovieTrailerKey(movieId) {
+            const videosUrl = `https://api.themoviedb.org/3/movie/${movieId}/videos?api_key=${TMDB_API_KEY}`;
+            
+            try {
+                const response = await fetchWithRetry(videosUrl, {}, 2);
+                const data = await response.json();
+                if (data.results && data.results.length > 0) {
+                    const trailer = data.results.find(video =>
+                        video.site === 'YouTube' && video.type === 'Trailer'
+                    );
+                    return trailer ? trailer.key : null;
+                }
+            } catch (error) {
+                console.warn(`Could not fetch trailer key: ${error.message}`);
+            }
+            return null;
+        }
+        
+        /**
+         * Fetches credits (cast and crew) for a given movie ID.
+         */
+        async function fetchMovieCredits(movieId) {
+            const creditsUrl = `https://api.themoviedb.org/3/movie/${movieId}/credits?api_key=${TMDB_API_KEY}`;
+            const response = await fetchWithRetry(creditsUrl);
+            return response.json();
+        }
+
+
+        // --- UI Rendering Functions ---
+
+        /**
+         * Renders the full list of search results in a grid.
+         */
+        function renderSearchResults(movies, isNewSearch) {
+            
+            let gallery = document.getElementById('movieGallery');
+
+            if (isNewSearch) {
+                // 1. Set up the main container for a new search
+                resultsContainer.innerHTML = `
+                    <div id="galleryHeader" class="w-full px-2 mb-6 text-2xl md:text-3xl font-bold text-white border-b border-gray-700 pb-3">
+                        Search Results for "${currentQuery}"
+                    </div>
+                    <!-- Gallery Grid -->
+                    <div id="movieGallery" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 p-2 w-full">
+                        <!-- Movie Cards will be appended here -->
+                    </div>
+                `;
+                gallery = document.getElementById('movieGallery');
+            }
+
+            // 2. Append new movie cards
+            const lowerCaseQuery = currentQuery.toLowerCase();
+            const newCardsHtml = movies
+                .filter(movie => 
+                    movie.poster_path && 
+                    movie.title && 
+                    // CRITICAL: Strict filtering to ensure search query is in the movie title
+                    movie.title.toLowerCase().includes(lowerCaseQuery)
+                ) 
+                .map(movie => {
+                const posterUrl = `${IMAGE_BASE_URL}w300${movie.poster_path}`;
+                const year = movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A';
+                const rating = movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A';
+                
+                // Use handleMovieClick directly in the onclick event
+                return `
+                    <div 
+                        class="bg-gray-700 rounded-xl shadow-xl cursor-pointer hover:shadow-tmdb-green/70 transition duration-300 transform hover:scale-[1.05] overflow-hidden"
+                        onclick="handleMovieClick(${movie.id}, '${movie.title.replace(/'/g, "\\'")}')"
+                    >
+                        <img src="${posterUrl}" alt="${movie.title} Poster" class="w-full aspect-[2/3] object-cover rounded-t-xl" onerror="this.onerror=null; this.src='https://placehold.co/300x450/374151/ffffff?text=No+Poster';">
+                        <div class="p-3">
+                            <h3 class="text-sm font-bold text-white truncate">${movie.title}</h3>
+                            <p class="text-xs text-gray-400 mt-1">
+                                ${year} | <span class="text-tmdb-green font-semibold">\u2605 ${rating}</span>
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            gallery.insertAdjacentHTML('beforeend', newCardsHtml);
+            
+            // 3. Update header for pagination status
+             const header = document.getElementById('galleryHeader');
+             if (header) {
+                header.textContent = `Search Results for "${currentQuery}"`;
+                // Add a final message if no more pages are available
+                if (currentPage >= totalPages && !isNewSearch) {
+                    gallery.insertAdjacentHTML('beforeend', '<p class="text-gray-400 text-center w-full mt-8 pb-12">-- End of Results --</p>');
+                }
+             }
+        }
+
+        /**
+         * Helper function to generate the circular rating SVG.
+         */
+        function createCircularRating(voteAverage) {
+            const radius = 30;
+            const circumference = 2 * Math.PI * radius;
+            const percentage = (voteAverage / 10) * 100;
+            const offset = circumference - (percentage / 100) * circumference;
+            const ratingColor = 
+                voteAverage >= 7 ? 'text-tmdb-green' : 
+                voteAverage >= 5 ? 'text-yellow-400' : 
+                'text-red-500';
+            const ratingText = voteAverage > 0 ? voteAverage.toFixed(1) : 'N/A';
+
+            return `
+                <div class="relative progress-ring mx-auto">
+                    <svg class="progress-ring" viewBox="0 0 70 70">
+                        <!-- Background Circle -->
+                        <circle
+                            class="text-gray-600"
+                            stroke-width="5"
+                            fill="transparent"
+                            r="${radius}"
+                            cx="35"
+                            cy="35"
+                            stroke="currentColor"
+                        />
+                        <!-- Progress Circle -->
+                        <circle
+                            class="progress-ring__circle ${ratingColor}"
+                            stroke-width="5"
+                            fill="transparent"
+                            r="${radius}"
+                            cx="35"
+                            cy="35"
+                            stroke="currentColor"
+                            style="stroke-dasharray: ${circumference} ${circumference}; stroke-dashoffset: ${offset};"
+                        />
+                    </svg>
+                    <span class="rating-text text-white">${ratingText}</span>
+                </div>
+            `;
+        }
+
+        /**
+         * Helper function to format currency (Budget/Revenue).
+         */
+        function formatCurrency(amount) {
+            if (!amount || amount === 0) return 'N/A';
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        /**
+         * Renders the detailed movie card view, replacing the gallery.
+         */
+        function renderMovie(details, trailerKey, credits) {
+            // Process Details Data
+            const safeTitle = encodeURIComponent(details.title);
+            const releaseDate = details.release_date ? new Date(details.release_date).getFullYear() : 'N/A';
+            const genres = details.genres ? details.genres.map(g => g.name).join(', ') : 'N/A';
+            const runtime = details.runtime ? `${Math.floor(details.runtime / 60)}h ${details.runtime % 60}m` : 'N/A';
+            const posterPath = details.poster_path ? `${IMAGE_BASE_URL}w500${details.poster_path}` : 'https://placehold.co/500x750/374151/ffffff?text=Poster+Unavailable';
+            const status = details.status || 'N/A';
+
+            // Process Credits Data
+            const director = credits.crew.find(member => member.job === 'Director');
+            const directorName = director ? director.name : 'N/A';
+            const topCast = credits.cast.slice(0, 5).map(actor => actor.name);
+            const topCastList = topCast.join(', ') || 'N/A';
+            
+            // Generate Production Logos
+            const productionLogos = details.production_companies
+                .filter(company => company.logo_path)
+                .map(company => `
+                    <div class="p-2 flex-shrink-0">
+                        <img 
+                            src="${IMAGE_BASE_URL}w92${company.logo_path}" 
+                            alt="${company.name} Logo" 
+                            title="${company.name}" 
+                            class="h-10 w-auto object-contain"
+                            onerror="this.onerror=null; this.style.display='none';"
+                        />
+                    </div>
+                `).join('');
+            
+            // Streaming/Trailer Links
+            const trailerUrl = trailerKey ? `https://www.youtube.com/watch?v=${trailerKey}` : '#';
+            const movies123Url = `https://ww7.123moviesfree.net/search/?q=${safeTitle}`;
+            const soap2dayUrl = `https://ww25.soap2day.day/?s=${safeTitle}`;
+            const gokuUrl = `https://goku.sx/search?keyword=${safeTitle}`;
+            
+            // Build the main detail card HTML
+            resultsContainer.innerHTML = `
+                <div class="w-full mb-6">
+                    <button onclick="searchMovie(false)" class="flex items-center text-tmdb-green hover:text-white transition duration-200 text-lg font-semibold">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Back to Search Results
+                    </button>
+                </div>
+                
+                <!-- Main Movie Detail Card -->
+                <div class="w-full bg-detail-card rounded-2xl shadow-2xl overflow-hidden p-6 md:p-10">
+                    <div class="flex flex-col lg:flex-row gap-8">
+                        
+                        <!-- Left Column: Poster & Rating -->
+                        <div class="flex-shrink-0 w-full lg:w-80">
+                            <img
+                                src="${posterPath}"
+                                alt="${details.title} Poster"
+                                class="w-full h-auto object-cover rounded-xl shadow-lg aspect-[2/3]"
+                                onerror="this.onerror=null; this.src='https://placehold.co/500x750/374151/ffffff?text=Poster+Unavailable';"
+                            >
+                            <div class="mt-6 p-4 bg-gray-700 rounded-xl flex items-center justify-center space-x-4">
+                                ${createCircularRating(details.vote_average)}
+                                <div>
+                                    <p class="text-sm text-gray-400 uppercase tracking-wider">User Score</p>
+                                    <p class="text-xl font-bold text-white">${details.vote_count.toLocaleString()} Votes</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Title, Synopsis, Info -->
+                        <div class="flex-grow">
+                            <h2 class="text-4xl md:text-5xl font-extrabold text-white mb-2 leading-tight">${details.title}</h2>
+                            <p class="text-lg text-gray-400 italic mb-6">(${releaseDate})</p>
+                            
+                            <!-- Metadata Bar -->
+                            <div class="flex flex-wrap items-center space-x-5 mb-8 text-sm md:text-base text-gray-300 border-b border-gray-600 pb-4">
+                                <span class="font-semibold text-tmdb-green">${runtime}</span>
+                                <span>\u2022</span>
+                                <span>${genres}</span>
+                                <span>\u2022</span>
+                                <span class="font-semibold text-yellow-300">${status}</span>
+                            </div>
+
+                            <!-- Overview / Synopsis -->
+                            <h3 class="text-2xl font-bold text-tmdb-green mb-3">Synopsis</h3>
+                            <p class="text-gray-300 leading-relaxed mb-8 overview-scroll border border-gray-700 p-4 rounded-lg bg-gray-700/50">
+                                ${details.overview || 'No detailed overview available for this movie.'}
+                            </p>
+
+                            <!-- Cast and Financial Details Grid -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                                <!-- Cast Panel -->
+                                <div class="bg-gray-700 p-5 rounded-xl shadow-lg">
+                                    <h4 class="text-xl font-bold text-white mb-3 flex items-center"><i class="fas fa-users mr-3 text-tmdb-green"></i>Director & Top Cast</h4>
+                                    <div class="text-gray-300 space-y-2">
+                                        <p><span class="font-semibold text-tmdb-green">Director:</span> ${directorName}</p>
+                                        <p><span class="font-semibold text-tmdb-green">Starring:</span> ${topCastList}</p>
+                                    </div>
+                                </div>
+
+                                <!-- Financial Panel -->
+                                <div class="bg-gray-700 p-5 rounded-xl shadow-lg">
+                                    <h4 class="text-xl font-bold text-white mb-3 flex items-center"><i class="fas fa-chart-line mr-3 text-tmdb-green"></i>Financials</h4>
+                                    <div class="text-gray-300 space-y-2">
+                                        <p><span class="font-semibold text-tmdb-green">Budget:</span> ${formatCurrency(details.budget)}</p>
+                                        <p><span class="font-semibold text-tmdb-green">Revenue:</span> ${formatCurrency(details.revenue)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Production Logos -->
+                            <h4 class="text-xl font-bold text-white mt-4 mb-3">Produced By</h4>
+                            <div class="flex flex-wrap gap-4 p-3 bg-gray-700/50 rounded-xl overflow-x-auto">
+                                ${productionLogos || '<p class="text-gray-400">No production logos found.</p>'}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Link Buttons Section (Full Width) -->
+                    <h3 class="text-2xl font-bold text-white mt-10 mb-5 border-t border-gray-600 pt-5">Watch Links</h3>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <a href="${trailerUrl}" target="_blank" class="button-link ${trailerKey ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-500 cursor-not-allowed opacity-75'}" ${trailerKey ? '' : 'onclick="event.preventDefault()" title="Trailer not found." aria-disabled="true"'}>
+                            <i class="fab fa-youtube mr-2"></i> Trailer
+                        </a>
+                        <a href="${movies123Url}" target="_blank" class="button-link bg-indigo-600 hover:bg-indigo-700">
+                            <i class="fas fa-link mr-2"></i> 123movies
+                        </a>
+                        <a href="${soap2dayUrl}" target="_blank" class="button-link bg-teal-600 hover:bg-teal-700">
+                            <i class="fas fa-link mr-2"></i> soap2day
+                        </a>
+                        <a href="${gokuUrl}" target="_blank" class="button-link bg-orange-600 hover:bg-orange-700">
+                            <i class="fas fa-link mr-2"></i> goku
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            // Inject shared button styling (pure CSS classes)
+            const style = document.createElement('style');
+            style.textContent = `
+                .button-link {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    text-align: center;
+                    padding: 0.75rem 1rem;
+                    color: white;
+                    font-weight: 700;
+                    border-radius: 0.75rem; /* Slightly more rounded */
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    transition: all 0.2s;
+                    text-decoration: none;
+                }
+                .button-link:not([disabled]):hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+                }
+            `;
+            if (!document.head.querySelector('style[data-custom-styles]')) {
+                style.setAttribute('data-custom-styles', 'true');
+                document.head.appendChild(style);
+            }
+        }
+        
+        // --- Main Logic ---
+
+        /**
+         * Handles the click on a movie card to load its details.
+         */
+        async function handleMovieClick(movieId, movieTitle) {
+            isFetching = true;
+            resultsContainer.innerHTML = `
+                <div class="text-center p-8 w-full">
+                    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-tmdb-green mx-auto mb-4"></div>
+                    <p class="text-tmdb-green">Loading ${movieTitle} details and cast...</p>
+                </div>
+            `;
+            
+            try {
+                // 1. Fetch Details, Trailer Key, and Credits concurrently
+                const [details, trailerKey, credits] = await Promise.all([
+                    fetchMovieDetails(movieId),
+                    fetchMovieTrailerKey(movieId),
+                    fetchMovieCredits(movieId) // NEW: Fetch credits
+                ]);
+                
+                // 2. Render the full movie details
+                renderMovie(details, trailerKey, credits);
+                
+            } catch (error) {
+                console.error("Detail Fetch Error:", error);
+                showNotification(`Could not load details for ${movieTitle}: ${error.message}`);
+            } finally {
+                isFetching = false;
+            }
+        }
+        
+        /**
+         * Initiates the movie search for a list of results (or pagination).
+         */
+        async function searchMovie(isPagination = false) {
+            const query = document.getElementById('movieInput').value.trim();
+
+            if (!isPagination) {
+                // NEW SEARCH LOGIC: Reset state
+                if (!query) {
+                    showNotification('Please enter a movie title to search.');
+                    return;
+                }
+                if (isFetching) return;
+                
+                currentQuery = query;
+                currentPage = 1;
+                totalPages = 1;
+                resultsContainer.innerHTML = '';
+                initialMessage.classList.add('hidden');
+                
+            } else {
+                // PAGINATION LOGIC: Load next page
+                if (isFetching || currentPage >= totalPages) {
+                    return;
+                }
+                currentPage++;
+                // Add a small temporary loader at the bottom
+                resultsContainer.insertAdjacentHTML('beforeend', '<div id="paginationLoader" class="text-center w-full p-4"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-tmdb-green mx-auto"></div></div>');
+            }
+
+            isFetching = true;
+            if (!isPagination) setLoading(true); // Only show full loader for initial search
+
+            try {
+                // 1. Get List of Movies
+                const { results, totalPages: newTotalPages } = await fetchSearchResults(currentQuery, currentPage);
+                totalPages = newTotalPages;
+
+                if (results.length === 0 && currentPage === 1) {
+                    resultsContainer.innerHTML = `<p class="text-gray-400 text-xl p-8 w-full text-center">Sorry, no movies were found for "${currentQuery}". Please try a different name.</p>`;
+                    return;
+                }
+
+                // 2. Render the clickable gallery (append if paginating)
+                renderSearchResults(results, currentPage === 1);
+
+            } catch (error) {
+                console.error("Search Error:", error);
+                showNotification(`An error occurred while fetching data: ${error.message}. Please try again.`);
+                if (currentPage === 1) resultsContainer.innerHTML = '';
+            } finally {
+                isFetching = false;
+                // Remove the pagination loader if it exists
+                const loader = document.getElementById('paginationLoader');
+                if (loader) loader.remove();
+                // If it was the initial load, remove the full screen loader by checking if the gallery exists
+                if (document.getElementById('movieGallery')) setLoading(false);
+            }
+        }
+
+        // --- Infinite Scroll Logic ---
+        window.addEventListener('scroll', () => {
+            // Only attempt to load more if:
+            // 1. We have a query
+            // 2. We aren't currently fetching
+            // 3. We have more pages to load
+            if (!currentQuery || isFetching || currentPage >= totalPages || !document.getElementById('movieGallery')) {
+                return;
+            }
+
+            // Check if the user is near the bottom (e.g., within 800px of the bottom)
+            const scrollThreshold = 800;
+            const scrollPosition = window.innerHeight + window.scrollY;
+            const totalHeight = document.body.offsetHeight;
+
+            if (scrollPosition >= totalHeight - scrollThreshold) {
+                // Trigger the next page load
+                searchMovie(true); 
+            }
+        });
+    </script>
+</body>
+</html>
