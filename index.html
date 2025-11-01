@@ -1,873 +1,277 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>I like movies</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'tmdb-blue': '#032541',
-                        'tmdb-green': '#1ed5a9',
-                        'dark-bg': '#1f2937',
-                        'detail-card': '#2d3748',
-                        'suggestion-bg': '#374151',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
-        ::-webkit-scrollbar-track { background: #1f2937; }
-        
-        .overview-scroll {
-            max-height: 10rem;
-            overflow-y: auto;
-            padding-right: 0.5rem; 
-        }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>I Like Movies | Cinematic Discovery</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"/>
+<script>
+tailwind.config={theme:{extend:{colors:{'tmdb-blue':'#032541','tmdb-green':'#1ed5a9','dark-bg':'#0a0a0a','card-bg':'#181818','detail-card':'#181818','suggestion-bg':'#242424','light-gray':'#d4d4d4'},fontFamily:{sans:['Inter','sans-serif']}}}};
+</script>
+<style>
+/* --- Global & Scrollbar (Dark Theme) --- */
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:#4b5563;border-radius:4px}::-webkit-scrollbar-track{background:#0a0a0a}
 
-        .progress-ring {
-            width: 80px;
-            height: 80px;
-        }
-        .progress-ring__circle {
-            transition: stroke-dashoffset 0.35s;
-            transform: rotate(-90deg);
-            transform-origin: 50% 50%;
-        }
-        .rating-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 1.25rem;
-            font-weight: 700;
-        }
-        .suggestion-item:hover {
-            background-color: var(--tw-colors-tmdb-blue);
-        }
-        
-        .button-link {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 0.75rem 1rem;
-            color: white;
-            font-weight: 700;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: all 0.2s;
-            text-decoration: none;
-        }
-        .button-link:not([disabled]):hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-        }
+/* --- Utility Classes --- */
+.overview-scroll{max-height:10rem;overflow-y:auto;padding-right:.5rem}
+.suggestion-item:hover{background-color:var(--tw-colors-tmdb-blue)}
 
-        .tab-button {
-            padding: 0.5rem 1rem;
-            border-radius: 9999px; 
-            font-weight: 600;
-            transition: all 0.2s;
-            cursor: pointer;
-            color: #9ca3af; 
-            border: 2px solid transparent;
-        }
-        .tab-button:hover:not(.active) {
-            color: white;
-            background-color: #374151;
-        }
-        .tab-button.active {
-            color: var(--tw-colors-tmdb-blue);
-            background-color: var(--tw-colors-tmdb-green);
-            box-shadow: 0 4px 8px rgba(30, 213, 169, 0.3);
-        }
-    </style>
+/* --- Rating Circle (Enhanced) --- */
+.progress-ring{width:80px;height:80px;box-shadow:0 0 10px rgba(0,0,0,0.5)}.progress-ring__circle{transition:stroke-dashoffset .35s;transform:rotate(-90deg);transform-origin:50% 50%}.rating-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.25rem;font-weight:700}
+
+/* --- Buttons (Cinematic Look) --- */
+.button-link{display:flex;justify-content:center;align-items:center;text-align:center;padding:.75rem 1rem;color:#fff;font-weight:700;border-radius:.5rem;box-shadow:0 4px 15px rgba(0,0,0,.4);transition:all .3s ease;text-decoration:none;letter-spacing:0.025em;}.button-link:not([disabled]):hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.6)}.tab-button{padding:.5rem 1.25rem;border-radius:9999px;font-weight:600;transition:all .3s ease;cursor:pointer;color:#a1a1aa;border:1px solid rgba(255, 255, 255, 0.1);background-color:rgba(36, 36, 36, 0.5); /* Semi-transparent background */}.tab-button:hover:not(.active){color:#fff;background-color:var(--tw-colors-tmdb-blue);}.tab-button.active{color:#fff;background-color:var(--tw-colors-tmdb-green);box-shadow:0 4px 15px rgba(30,213,169,.4); border-color: var(--tw-colors-tmdb-green);}
+
+/* --- Media Card (Professional Hover & Transition) --- */
+.media-card{transition:all .5s cubic-bezier(0.25, 0.46, 0.45, 0.94);opacity: 0; animation: fadeIn 0.5s ease-out forwards;}.media-card:hover{box-shadow:0 15px 30px rgba(0,0,0,0.7);transform:scale(1.05) translateY(-5px)}
+@keyframes fadeIn {from {opacity: 0; transform: translateY(10px);} to {opacity: 1; transform: translateY(0);}}
+.media-card:nth-child(1) {animation-delay: 0.0s;}
+.media-card:nth-child(2) {animation-delay: 0.05s;}
+.media-card:nth-child(3) {animation-delay: 0.1s;}
+.media-card:nth-child(4) {animation-delay: 0.15s;}
+.media-card:nth-child(5) {animation-delay: 0.2s;}
+.media-card:nth-child(6) {animation-delay: 0.25s;}
+/* Add more for subtle staggering load */
+
+
+/* --- Detail Page Backdrop (Netflix/HBO style) --- */
+.backdrop-container{position:relative;padding-top:35%;overflow:hidden;border-radius:1rem 1rem 0 0;}.backdrop-container::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(10,10,10,0) 0%,rgba(10,10,10,1) 100%);z-index:1;}.backdrop-image{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;filter:brightness(0.5);transform:scale(1.05);transition:filter 0.5s;}
+.detail-content-area{position:relative;z-index:2;margin-top:-10rem;} /* Pull content over the backdrop bottom */
+
+/* --- GLASS MORPHISM EFFECT --- */
+.glass-effect {
+    background-color: rgba(24, 24, 24, 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+</style>
 </head>
-<body class="bg-dark-bg min-h-screen p-4 md:p-8 font-sans text-gray-100">
+<body class="bg-dark-bg min-h-screen font-sans text-light-gray">
 
-    <div class="max-w-6xl mx-auto">
-        <header class="text-center mb-10">
-            <h1 class="text-5xl font-extrabold text-tmdb-green tracking-tight mb-2">I Like Movies</h1>
-            <p class="text-gray-400 text-lg">I really dont care if you use this website or not I made it for myself</p>
-        </header>
-
-        <div class="p-4 bg-gray-800 rounded-xl shadow-2xl mb-8 sticky top-0 z-20 border-b-2 border-tmdb-green/20">
-            
-            <div id="discoveryTabs" class="flex flex-wrap justify-center gap-3 mb-6">
-                <button class="tab-button active" data-type="now_playing" onclick="changeDiscoveryMode('now_playing')">Now Playing</button>
-                <button class="tab-button" data-type="trending_weekly" onclick="changeDiscoveryMode('trending_weekly')">Trending</button>
-                <button class="tab-button" data-type="popular" onclick="changeDiscoveryMode('popular')">Popular</button>
-                <button class="tab-button" data-type="top_rated" onclick="changeDiscoveryMode('top_rated')">Top Rated</button>
-            </div>
-            
-            <div class="relative flex flex-col sm:flex-row gap-3">
-                <input
-                    type="text"
-                    id="mediaInput"
-                    placeholder="Search for a movie or TV show title..."
-                    class="flex-grow p-3 bg-gray-700 text-white border border-gray-600 rounded-lg focus:ring-2 focus:ring-tmdb-green focus:border-tmdb-green transition duration-200"
-                >
-                <button
-                    onclick="startSearchFromInput()"
-                    class="bg-tmdb-green text-tmdb-blue font-bold py-3 px-6 rounded-lg shadow-md hover:bg-opacity-90 transition duration-200 transform hover:scale-[1.02] active:scale-100"
-                >
-                    Search
-                </button>
-
-                <div id="autocomplete-results" class="absolute top-full left-0 right-0 mt-1 bg-suggestion-bg rounded-lg shadow-2xl overflow-hidden z-30 max-h-80 overflow-y-auto hidden">
-                </div>
-            </div>
+<header class="sticky top-0 z-40 glass-effect shadow-2xl border-b border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row justify-between items-center gap-2">
+        <div class="flex-shrink-0 text-center sm:text-left">
+            <h1 class="text-3xl font-extrabold text-tmdb-green tracking-tighter">I Like Movies</h1>
+            <p class="text-xs text-gray-500 italic hidden sm:block">A modern cinematic discovery experience</p>
         </div>
-
-        <div id="resultsContainer" class="min-h-[200px] flex flex-wrap justify-center relative z-10">
-        </div>
-
-        <div id="notificationModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center p-4 z-50">
-            <div class="bg-gray-700 p-6 rounded-xl shadow-2xl max-w-sm w-full border-t-4 border-red-500">
-                <h3 class="text-xl font-bold text-red-400 mb-3">Error</h3>
-                <p id="notificationText" class="text-gray-300 mb-4"></p>
-                <button onclick="hideNotification()" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition">
-                    Got It
-                </button>
+        <div class="p-2 sm:p-0">
+            <div id="discoveryTabs" class="flex flex-wrap justify-end gap-2 sm:gap-3">
+                <button class="tab-button active" data-type="now_playing">Now Playing</button>
+                <button class="tab-button" data-type="trending_weekly">Trending</button>
+                <button class="tab-button" data-type="popular">Popular</button>
+                <button class="tab-button" data-type="top_rated">Top Rated</button>
             </div>
         </div>
     </div>
+</header>
 
-    <script>
-        const TMDB_API_KEY = '37ec0b0f9f14409ef6f559739272b5f1';
-        const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/'; 
-        const DEBOUNCE_DELAY = 300;
+<main class="max-w-7xl mx-auto p-4 md:p-8">
+    <div class="p-4 glass-effect rounded-xl shadow-2xl mb-8 sticky top-[80px] z-20">
+        <div class="relative flex flex-col sm:flex-row gap-3">
+          <input id="mediaInput" type="text" placeholder="Search for a movie or TV show title..." class="flex-grow p-3 bg-gray-700/50 text-white border border-gray-600 rounded-lg focus:ring-2 focus:ring-tmdb-green focus:border-transparent transition duration-200 shadow-inner placeholder-gray-500"/>
+          <button id="searchBtn" class="bg-tmdb-green text-tmdb-blue font-bold py-3 px-6 rounded-lg shadow-tmdb-green/40 shadow-lg hover:bg-opacity-90 transition duration-300 transform hover:scale-[1.01] active:scale-100 uppercase tracking-wider">Search</button>
+          <div id="autocomplete-results" class="absolute top-full left-0 right-0 mt-1 bg-suggestion-bg rounded-lg shadow-2xl overflow-hidden z-30 max-h-80 overflow-y-auto hidden border border-gray-700"></div>
+        </div>
+    </div>
+
+    <div id="resultsContainer" class="min-h-[200px] flex flex-wrap justify-center relative z-10"></div>
+
+    <div id="notificationModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center p-4 z-50">
+    <div class="bg-gray-700 p-6 rounded-xl shadow-2xl max-w-sm w-full border-t-4 border-red-500">
+      <h3 class="text-xl font-bold text-red-400 mb-3">Error</h3>
+      <p id="notificationText" class="text-gray-300 mb-4"></p>
+      <button id="notifyOk" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition">Got It</button>
+    </div>
+  </div>
+</main>
+
+<script>
+const TMDB_API_KEY='37ec0b0f9f14409ef6f559739272b5f1';
+const IMAGE_BASE_URL='https://image.tmdb.org/t/p/';
+const DEBOUNCE_DELAY=300;
+const $=id=>document.getElementById(id);
+const resultsContainer=$('resultsContainer'), mediaInput=$('mediaInput'), autocompleteResults=$('autocomplete-results'), notifyOk=$('notifyOk');
+const appState={isFetching:false,viewMode:'gallery',isDiscoveryMode:true,currentQuery:'',discoveryMode:'now_playing',discoveryPage:1,totalDiscoveryPages:1,discoveryResultsCache:[],searchPage:1,totalSearchPages:1,searchResultsCache:[],detailId:null,detailType:null};
+const DISCOVERY_CONFIG={now_playing:{title:'Now Playing Movies',endpoint:'/movie/now_playing',type:'movie'},trending_weekly:{title:'Trending This Week',endpoint:'/trending/all/week',type:'multi'},popular:{title:'Popular Movies',endpoint:'/movie/popular',type:'movie'},top_rated:{title:'Top Rated Movies',endpoint:'/movie/top_rated',type:'movie'}};
+
+const debounce=(fn,delay)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn.apply(this,a),delay);}};
+const showNotification=msg=>{$('notificationText').textContent=msg;$('notificationModal').classList.remove('hidden');$('notificationModal').classList.add('flex');};
+const hideNotification=()=>{$('notificationModal').classList.add('hidden');$('notificationModal').classList.remove('flex');};
+const setLoading=(isLoading,isPagination=false)=>{if(isPagination){if(!$('paginationLoader'))resultsContainer.insertAdjacentHTML('beforeend','<div id="paginationLoader" class="text-center w-full p-4"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-tmdb-green mx-auto"></div></div>');return} if(isLoading)resultsContainer.innerHTML='<div class="text-center p-8 w-full"><div class="animate-spin rounded-full h-10 w-10 border-b-2 border-tmdb-green mx-auto mb-4"></div><p class="text-tmdb-green">Loading content...</p></div>'; const l=$('paginationLoader'); if(l)l.remove();};
+
+const fetchWithRetry=async(url,opts={},retries=3)=>{for(let i=0;i<retries;i++){try{const r=await fetch(url,opts);if(r.ok)return r; if(i===retries-1)throw new Error(`Request failed ${r.status}`);}catch(e){if(i===retries-1)throw e;}await new Promise(res=>setTimeout(res,Math.min(Math.pow(2,i)*1000,8000)));}throw new Error('Exceeded retries');};
+
+const fetchDiscovery=async(mode,page)=>{const cfg=DISCOVERY_CONFIG[mode];const r=await fetchWithRetry(`https://api.themoviedb.org/3${cfg.endpoint}?api_key=${TMDB_API_KEY}&page=${page}`);const d=await r.json();let results=d.results||[];if(cfg.type==='multi')results=results.filter(it=>it.media_type==='movie'||it.media_type==='tv');return{results:results.map(m=>({...m,media_type:m.media_type||'movie'})),totalPages:d.total_pages||1};};
+const fetchSearchResults=async(q,page)=>{const r=await fetchWithRetry(`https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(q)}&page=${page}`);const d=await r.json();return{results:(d.results||[]).filter(it=>it.media_type==='movie'||it.media_type==='tv'),totalPages:d.total_pages||1};};
+const fetchMediaDetails=async(type,id)=>{const ep=type==='tv'?'tv':'movie';const r=await fetchWithRetry(`https://api.themoviedb.org/3/${ep}/${id}?api_key=${TMDB_API_KEY}`);return r.json();};
+const fetchMediaVideos=async(type,id)=>{try{const ep=type==='tv'?'tv':'movie';const r=await fetchWithRetry(`https://api.themoviedb.org/3/${ep}/${id}/videos?api_key=${TMDB_API_KEY}`,{},2);const d=await r.json();if(d.results&&d.results.length){const t=d.results.find(v=>v.site==='YouTube'&&(v.type==='Trailer'||v.type==='Teaser'));return t?t.key:null}}catch(e){console.warn('Trailer',e)}return null};
+const fetchMediaCredits=async(type,id)=>{const ep=type==='tv'?'tv':'movie';const r=await fetchWithRetry(`https://api.themoviedb.org/3/${ep}/${id}/credits?api_key=${TMDB_API_KEY}`);return r.json();};
+
+const handleAutocomplete=debounce(async e=>{const q=e.target.value.trim();if(q.length<2){autocompleteResults.classList.add('hidden');return}try{const {results}=await fetchSearchResults(q,1);renderAutocomplete(results)}catch(e){console.error(e);autocompleteResults.classList.add('hidden')}},DEBOUNCE_DELAY);
+
+const renderAutocomplete=(results)=>{autocompleteResults.innerHTML='';const limited=results.slice(0,10);if(!limited.length){autocompleteResults.classList.add('hidden');return}limited.forEach(media=>{const title=media.title||media.name;const tlabel=media.media_type==='movie'?'Movie':'TV';const year=(media.release_date||media.first_air_date)?new Date(media.release_date||media.first_air_date).getFullYear():'N/A';const item=document.createElement('div');item.className='suggestion-item p-3 cursor-pointer border-b border-gray-600 text-sm flex justify-between items-center';item.innerHTML=`<span class="truncate">${title}</span><span class="text-xs text-gray-400 font-semibold">${tlabel} (${year})</span>`;item.onclick=()=>{mediaInput.value=title;autocompleteResults.classList.add('hidden');const type=media.media_type==='person'?(media.known_for_department==='Acting'?'movie':'movie'):media.media_type;loadDetailView(media.id,type,title,true)};autocompleteResults.appendChild(item)});autocompleteResults.classList.remove('hidden')};
+
+const renderGallery=(mediaList,isNewLoad,galleryTitle)=>{let gallery=document.getElementById('mediaGallery');
+if(isNewLoad){
+    resultsContainer.innerHTML=`<div id="galleryHeader" class="w-full px-2 mb-8 text-3xl md:text-4xl font-extrabold text-white border-b-4 border-tmdb-green/50 pb-3 tracking-tight">${galleryTitle}</div><div id="mediaGallery" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 p-2 w-full"></div>`;
+    gallery=document.getElementById('mediaGallery')
+}
+const header=document.getElementById('galleryHeader');if(header)header.textContent=galleryTitle;
+
+const cards=mediaList.filter(m=>m.poster_path).map((media, index)=>{
+    const displayTitle=media.title||media.name;
+    const mediaType=media.media_type||'movie';
+    const isMovie=mediaType==='movie';
+    const mediaTypeLabel=isMovie?'Movie':(mediaType==='tv'?'TV Show':'N/A');
+    const releaseDate=isMovie?media.release_date:media.first_air_date;
+    const posterUrl=`${IMAGE_BASE_URL}w342${media.poster_path}`;
+    const year=releaseDate?new Date(releaseDate).getFullYear():'N/A';
+    const rating=media.vote_average?media.vote_average.toFixed(1):'N/A';
+    const ph=encodeURIComponent(`No Poster for ${displayTitle}`);
+    
+    return`<div class="media-card bg-card-bg rounded-xl shadow-2xl cursor-pointer transition duration-300 transform overflow-hidden relative group" data-id="${media.id}" data-type="${mediaType}" data-title="${displayTitle.replace(/"/g,'&quot;')}" style="animation-delay: ${index * 0.05}s;">
+        <div class="relative">
+            <img src="${posterUrl}" alt="${displayTitle} Poster" class="w-full aspect-[2/3] object-cover rounded-t-xl transition duration-500 group-hover:opacity-80" onerror="this.onerror=null;this.src='https://placehold.co/342x513/181818/d4d4d4?text=${ph}';">
+            <div class="absolute top-3 right-3 bg-tmdb-blue/80 backdrop-blur-sm text-white text-sm font-bold px-2.5 py-1 rounded-full shadow-lg border border-gray-700">
+                <i class="fas fa-star text-yellow-400 mr-1"></i>${rating}
+            </div>
+        </div>
+        <div class="p-4">
+            <h3 class="text-base font-extrabold text-light-gray truncate group-hover:text-tmdb-green">${displayTitle}</h3>
+            <p class="text-sm text-gray-500 mt-1">${mediaTypeLabel} • ${year}</p>
+        </div>
+    </div>`
+}).join('');
+
+gallery.insertAdjacentHTML('beforeend',cards);
+const totalPages=appState.isDiscoveryMode?appState.totalDiscoveryPages:appState.totalSearchPages;
+const currentPage=appState.isDiscoveryMode?appState.discoveryPage:appState.searchPage;
+if(!isNewLoad&&currentPage>=totalPages)gallery.insertAdjacentHTML('beforeend','<p class="text-gray-400 text-center w-full mt-8 pb-12">-- End of Results --</p>');
+};
+
+const createCircularRating=(voteAverage)=>{const r=30,circ=2*Math.PI*r,perc=(voteAverage/10)*100,offset=circ-(perc/100)*circ,color=voteAverage>=7?'text-tmdb-green':voteAverage>=5?'text-yellow-400':'text-red-500',txt=voteAverage>0?voteAverage.toFixed(1):'N/A';return`<div class="relative progress-ring mx-auto"><svg class="progress-ring" viewBox="0 0 70 70"><circle class="text-gray-600" stroke-width="5" fill="transparent" r="${r}" cx="35" cy="35" stroke="currentColor"/><circle class="progress-ring__circle ${color}" stroke-width="5" fill="transparent" r="${r}" cx="35" cy="35" stroke="currentColor" style="stroke-dasharray:${circ} ${circ};stroke-dashoffset:${offset};"/></svg><span class="rating-text text-white">${txt}</span></div>`};
+
+const formatCurrency=a=>{if(!a||a===0)return'N/A';return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:0}).format(a)};
+
+const renderMedia=(details,trailerKey,credits,mediaType)=>{
+    const isMovie=mediaType==='movie',
+    title=details.title||details.name,
+    safeTitle=encodeURIComponent(title),
+    mediaTypeLabel=isMovie?'Movie':'TV Show',
+    releaseDateRaw=isMovie?details.release_date:details.first_air_date,
+    releaseDate=releaseDateRaw?new Date(releaseDateRaw).getFullYear():'N/A',
+    genres=details.genres?details.genres.map(g=>g.name).join(', '):'N/A',
+    posterPath=details.poster_path?`${IMAGE_BASE_URL}w500${details.poster_path}`:'https://placehold.co/500x750/181818/d4d4d4?text=Poster+Unavailable',
+    backdropPath=details.backdrop_path?`${IMAGE_BASE_URL}original${details.backdrop_path}`:'', // New backdrop path
+    status=details.status||'N/A';
+    
+    let durationString;
+    if(isMovie)durationString=details.runtime?`${Math.floor(details.runtime/60)}h ${details.runtime%60}m`:'N/A';
+    else{const er=details.episode_run_time;durationString=er&&er.length>0?`~${er[0]}m / Ep`:'N/A'}
+    
+    const crewRole=isMovie?'Director':'Creator';
+    const crewMember=(credits.crew||[]).find(m=>m.job===crewRole);
+    const crewName=crewMember?crewMember.name:'N/A';
+    const topCast=(credits.cast||[]).slice(0,5).map(a=>a.name).join(', ')||'N/A';
+    const productionLogos=(details.production_companies||[]).filter(c=>c.logo_path).map(c=>`<div class="p-2 flex-shrink-0"><img src="${IMAGE_BASE_URL}w92${c.logo_path}" alt="${c.name} Logo" title="${c.name}" class="h-10 w-auto object-contain filter invert opacity-80" onerror="this.onerror=null;this.style.display='none';"/></div>`).join('');
+    const trailerUrl=trailerKey?`https://www.youtube.com/watch?v=${trailerKey}`:'#';
+    const movies123Url=`https://ww7.123moviesfree.net/search/?q=${safeTitle}`,soap2dayUrl=`https://ww25.soap2day.day/?s=${safeTitle}`,gokuUrl=`https://goku.sx/search?keyword=${safeTitle}`;
+    
+    const financialOrSeries=isMovie?
+        `<div class="bg-card-bg p-5 rounded-xl shadow-lg border border-gray-700"><h4 class="text-xl font-bold text-white mb-3 flex items-center"><i class="fas fa-chart-line mr-3 text-tmdb-green"></i>Financials</h4><div class="text-gray-300 space-y-2"><p><span class="font-semibold text-tmdb-green">Budget:</span> ${formatCurrency(details.budget)}</p><p><span class="font-semibold text-tmdb-green">Revenue:</span> ${formatCurrency(details.revenue)}</p></div></div>`
+        :
+        `<div class="bg-card-bg p-5 rounded-xl shadow-lg border border-gray-700"><h4 class="text-xl font-bold text-white mb-3 flex items-center"><i class="fas fa-tv mr-3 text-tmdb-green"></i>Series Info</h4><div class="text-gray-300 space-y-2"><p><span class="font-semibold text-tmdb-green">Seasons:</span> ${details.number_of_seasons||'N/A'}</p><p><span class="font-semibold text-tmdb-green">Episodes:</span> ${details.number_of_episodes||'N/A'}</p></div></div>`;
         
-        const resultsContainer = document.getElementById('resultsContainer');
-        const mediaInput = document.getElementById('mediaInput');
-        const autocompleteResults = document.getElementById('autocomplete-results');
+    resultsContainer.innerHTML=`
+    <div class="w-full mb-6"><button id="backBtn" class="flex items-center text-tmdb-green hover:text-light-gray transition duration-200 text-lg font-semibold"><i class="fas fa-arrow-left mr-2"></i>Back to ${appState.isDiscoveryMode?'Discovery':'Search Results'}</button></div>
 
-        const appState = {
-            isFetching: false,
-            viewMode: 'gallery', 
-            
-            // Gallery State
-            isDiscoveryMode: true,
-            currentQuery: '',
-            
-            // Discovery State
-            discoveryMode: 'now_playing', 
-            discoveryPage: 1,
-            totalDiscoveryPages: 1,
-            discoveryResultsCache: [],
+    <div class="w-full bg-detail-card rounded-2xl shadow-2xl overflow-hidden border border-gray-800">
+        ${backdropPath?`<div class="backdrop-container w-full"><img src="${backdropPath}" alt="${title} Backdrop" class="backdrop-image"/></div>`:''}
 
-            // Search State
-            searchPage: 1,
-            totalSearchPages: 1,
-            searchResultsCache: [],
-
-            // Detail State
-            detailId: null,
-            detailType: null,
-        };
-
-        const DISCOVERY_CONFIG = {
-            'now_playing': { title: 'Now Playing Movies', endpoint: '/movie/now_playing', type: 'movie' },
-            'trending_weekly': { title: 'Trending This Week', endpoint: '/trending/all/week', type: 'multi' },
-            'popular': { title: 'Popular Movies', endpoint: '/movie/popular', type: 'movie' },
-            'top_rated': { title: 'Top Rated Movies', endpoint: '/movie/top_rated', type: 'movie' }
-        };
-
-        // --- Utility Functions ---
-
-        function debounce(func, delay) {
-            let timeout;
-            return function(...args) {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(this, args), delay);
-            };
-        }
-
-        function showNotification(message) {
-            document.getElementById('notificationText').textContent = message;
-            document.getElementById('notificationModal').classList.remove('hidden');
-            document.getElementById('notificationModal').classList.add('flex');
-        }
-
-        function hideNotification() {
-            document.getElementById('notificationModal').classList.add('hidden');
-            document.getElementById('notificationModal').classList.remove('flex');
-        }
-
-        function setLoading(isLoading, isPagination) {
-            if (isPagination) {
-                resultsContainer.insertAdjacentHTML('beforeend', '<div id="paginationLoader" class="text-center w-full p-4"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-tmdb-green mx-auto"></div></div>');
-            } else if (isLoading) {
-                resultsContainer.innerHTML = `
-                    <div class="text-center p-8 w-full">
-                        <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-tmdb-green mx-auto mb-4"></div>
-                        <p class="text-tmdb-green">Loading content...</p>
-                    </div>
-                `;
-            } else {
-                const loader = document.getElementById('paginationLoader');
-                if (loader) loader.remove();
-            }
-        }
-
-        async function fetchWithRetry(url, options = {}, retries = 3) {
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const response = await fetch(url, options);
-                    if (response.ok) {
-                        return response;
-                    }
-                    if (i === retries - 1) {
-                        throw new Error(`Request failed with status ${response.status} (${response.statusText})`);
-                    }
-                } catch (error) {
-                    if (i === retries - 1) {
-                        throw new Error(`Network error: ${error.message}`);
-                    }
-                }
-                const delay = Math.min(Math.pow(2, i) * 1000, 8000);
-                await new Promise(resolve => setTimeout(resolve, delay));
-            }
-            throw new Error("Exceeded maximum retries.");
-        }
-
-        // --- API Call Functions ---
-
-        async function fetchDiscovery(mode, page) {
-            const config = DISCOVERY_CONFIG[mode];
-            const url = `https://api.themoviedb.org/3${config.endpoint}?api_key=${TMDB_API_KEY}&page=${page}`;
-            const response = await fetchWithRetry(url);
-            const data = await response.json();
-            
-            let results = data.results || [];
-            
-            if (config.type === 'multi') {
-                results = results.filter(item => item.media_type === 'movie' || item.media_type === 'tv');
-            }
-
-            return {
-                results: results.map(m => ({ ...m, media_type: m.media_type || 'movie' })),
-                totalPages: data.total_pages || 1
-            };
-        }
-
-        async function fetchSearchResults(query, page) {
-            const url = `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&page=${page}`;
-            const response = await fetchWithRetry(url);
-            const data = await response.json();
-            
-            return {
-                results: (data.results || []).filter(item => item.media_type === 'movie' || item.media_type === 'tv'),
-                totalPages: data.total_pages || 1
-            };
-        }
-
-        async function fetchMediaDetails(mediaType, mediaId) {
-            const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
-            const detailsUrl = `https://api.themoviedb.org/3/${endpoint}/${mediaId}?api_key=${TMDB_API_KEY}`;
-            const response = await fetchWithRetry(detailsUrl);
-            return response.json();
-        }
-
-        async function fetchMediaTrailerKey(mediaType, mediaId) {
-            const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
-            const videosUrl = `https://api.themoviedb.org/3/${endpoint}/${mediaId}/videos?api_key=${TMDB_API_KEY}`;
-            
-            try {
-                const response = await fetchWithRetry(videosUrl, {}, 2);
-                const data = await response.json();
-                if (data.results && data.results.length > 0) {
-                    const trailer = data.results.find(video =>
-                        video.site === 'YouTube' && (video.type === 'Trailer' || video.type === 'Teaser')
-                    );
-                    return trailer ? trailer.key : null;
-                }
-            } catch (error) {
-                console.warn(`Could not fetch trailer key: ${error.message}`);
-            }
-            return null;
-        }
-        
-        async function fetchMediaCredits(mediaType, mediaId) {
-            const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
-            const creditsUrl = `https://api.themoviedb.org/3/${endpoint}/${mediaId}/credits?api_key=${TMDB_API_KEY}`;
-            const response = await fetchWithRetry(creditsUrl);
-            return response.json();
-        }
-
-        // --- Autocomplete Logic ---
-
-        const handleAutocomplete = debounce(async (e) => {
-            const query = e.target.value.trim();
-            if (query.length < 2) {
-                autocompleteResults.classList.add('hidden');
-                return;
-            }
-
-            try {
-                const { results } = await fetchSearchResults(query, 1);
-                renderAutocomplete(results);
-            } catch (error) {
-                console.error("Autocomplete Error:", error);
-                autocompleteResults.classList.add('hidden');
-            }
-        }, DEBOUNCE_DELAY);
-
-        function renderAutocomplete(results) {
-            autocompleteResults.innerHTML = '';
-            
-            const limitedResults = results.slice(0, 10);
-
-            if (limitedResults.length === 0) {
-                autocompleteResults.classList.add('hidden');
-                return;
-            }
-
-            limitedResults.forEach(media => {
-                const displayTitle = media.title || media.name;
-                const mediaTypeLabel = media.media_type === 'movie' ? 'Movie' : 'TV';
-                const year = media.release_date || media.first_air_date ? new Date(media.release_date || media.first_air_date).getFullYear() : 'N/A';
-                
-                const item = document.createElement('div');
-                item.className = 'suggestion-item p-3 cursor-pointer border-b border-gray-600 text-sm flex justify-between items-center';
-                item.innerHTML = `
-                    <span class="truncate">${displayTitle}</span>
-                    <span class="text-xs text-gray-400 font-semibold">${mediaTypeLabel} (${year})</span>
-                `;
-                item.onclick = () => {
-                    mediaInput.value = displayTitle;
-                    autocompleteResults.classList.add('hidden');
-                    const type = media.media_type === 'person' ? (media.known_for_department === 'Acting' ? 'movie' : 'movie') : media.media_type;
-                    loadDetailView(media.id, type, displayTitle, true);
-                };
-                autocompleteResults.appendChild(item);
-            });
-
-            autocompleteResults.classList.remove('hidden');
-        }
-
-        // --- UI Rendering Functions ---
-
-        function renderGallery(mediaList, isNewLoad, galleryTitle) {
-            let gallery = document.getElementById('mediaGallery');
-
-            if (isNewLoad) {
-                resultsContainer.innerHTML = `
-                    <div id="galleryHeader" class="w-full px-2 mb-6 text-2xl md:text-3xl font-bold text-white border-b border-gray-700 pb-3">
-                        ${galleryTitle}
-                    </div>
-                    <div id="mediaGallery" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 p-2 w-full">
-                    </div>
-                `;
-                gallery = document.getElementById('mediaGallery');
-            }
-            
-            const header = document.getElementById('galleryHeader');
-            if (header) {
-                header.textContent = galleryTitle;
-            }
-
-            const newCardsHtml = mediaList
-                .filter(media => media.poster_path) 
-                .map(media => {
-                const displayTitle = media.title || media.name;
-                const mediaType = media.media_type || 'movie'; 
-                const isMovie = mediaType === 'movie';
-                const mediaTypeLabel = isMovie ? 'Movie' : (mediaType === 'tv' ? 'TV Show' : 'N/A');
-                const releaseDate = isMovie ? media.release_date : media.first_air_date;
-                const posterUrl = `${IMAGE_BASE_URL}w185${media.poster_path}`; 
-                const year = releaseDate ? new Date(releaseDate).getFullYear() : 'N/A';
-                const rating = media.vote_average ? media.vote_average.toFixed(1) : 'N/A';
-                const placeholderText = encodeURIComponent(`No Poster for ${displayTitle}`); 
-                
-                return `
-                    <div 
-                        class="bg-gray-700 rounded-xl shadow-xl cursor-pointer hover:shadow-tmdb-green/70 transition duration-300 transform hover:scale-[1.05] overflow-hidden"
-                        onclick="loadDetailView(${media.id}, '${mediaType}', '${displayTitle.replace(/'/g, "\\'")}')"
-                    >
-                        <img 
-                            src="${posterUrl}" 
-                            alt="${displayTitle} Poster" 
-                            class="w-full aspect-[2/3] object-cover rounded-t-xl" 
-                            onerror="this.onerror=null; this.src='https://placehold.co/185x277/374151/ffffff?text=${placeholderText}';">
-                        <div class="p-3">
-                            <h3 class="text-sm font-bold text-white truncate">${displayTitle}</h3>
-                            <p class="text-xs text-gray-400 mt-1">
-                                ${year} | <span class="text-tmdb-green font-semibold">\u2605 ${rating}</span>
-                            </p>
-                            <p class="text-xs font-semibold text-gray-500">${mediaTypeLabel}</p>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            gallery.insertAdjacentHTML('beforeend', newCardsHtml);
-            
-            const totalPages = appState.isDiscoveryMode ? appState.totalDiscoveryPages : appState.totalSearchPages;
-            const currentPage = appState.isDiscoveryMode ? appState.discoveryPage : appState.searchPage;
-
-            if (!isNewLoad && currentPage >= totalPages) {
-                gallery.insertAdjacentHTML('beforeend', '<p class="text-gray-400 text-center w-full mt-8 pb-12">-- End of Results --</p>');
-            }
-        }
-
-        function createCircularRating(voteAverage) {
-            const radius = 30;
-            const circumference = 2 * Math.PI * radius;
-            const percentage = (voteAverage / 10) * 100;
-            const offset = circumference - (percentage / 100) * circumference;
-            const ratingColor = 
-                voteAverage >= 7 ? 'text-tmdb-green' : 
-                voteAverage >= 5 ? 'text-yellow-400' : 
-                'text-red-500';
-            const ratingText = voteAverage > 0 ? voteAverage.toFixed(1) : 'N/A';
-
-            return `
-                <div class="relative progress-ring mx-auto">
-                    <svg class="progress-ring" viewBox="0 0 70 70">
-                        <circle
-                            class="text-gray-600"
-                            stroke-width="5"
-                            fill="transparent"
-                            r="${radius}"
-                            cx="35"
-                            cy="35"
-                            stroke="currentColor"
-                        />
-                        <circle
-                            class="progress-ring__circle ${ratingColor}"
-                            stroke-width="5"
-                            fill="transparent"
-                            r="${radius}"
-                            cx="35"
-                            cy="35"
-                            stroke="currentColor"
-                            style="stroke-dasharray: ${circumference} ${circumference}; stroke-dashoffset: ${offset};"
-                        />
-                    </svg>
-                    <span class="rating-text text-white">${ratingText}</span>
-                </div>
-            `;
-        }
-
-        function formatCurrency(amount) {
-            if (!amount || amount === 0) return 'N/A';
-            return new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD',
-                minimumFractionDigits: 0
-            }).format(amount);
-        }
-
-        function renderMedia(details, trailerKey, credits, mediaType) {
-            const isMovie = mediaType === 'movie';
-            const title = details.title || details.name;
-            const safeTitle = encodeURIComponent(title);
-            const mediaTypeLabel = isMovie ? 'Movie' : 'TV Show';
-            const releaseDateRaw = isMovie ? details.release_date : details.first_air_date;
-            const releaseDate = releaseDateRaw ? new Date(releaseDateRaw).getFullYear() : 'N/A';
-            const genres = details.genres ? details.genres.map(g => g.name).join(', ') : 'N/A';
-            const posterPath = details.poster_path ? `${IMAGE_BASE_URL}w500${details.poster_path}` : 'https://placehold.co/500x750/374151/ffffff?text=Poster+Unavailable';
-            const status = details.status || 'N/A';
-
-            let durationString;
-            if (isMovie) {
-                durationString = details.runtime ? `${Math.floor(details.runtime / 60)}h ${details.runtime % 60}m` : 'N/A';
-            } else {
-                const episodeRunTime = details.episode_run_time;
-                durationString = episodeRunTime && episodeRunTime.length > 0 
-                    ? `~${episodeRunTime[0]}m / Ep`
-                    : 'N/A';
-            }
-            
-            const crewRole = isMovie ? 'Director' : 'Creator';
-            const crewMember = credits.crew.find(member => member.job === crewRole);
-            const crewName = crewMember ? crewMember.name : 'N/A';
-            
-            const topCast = credits.cast.slice(0, 5).map(actor => actor.name);
-            const topCastList = topCast.join(', ') || 'N/A';
-            
-            const productionLogos = (details.production_companies || [])
-                .filter(company => company.logo_path)
-                .map(company => `
-                    <div class="p-2 flex-shrink-0">
-                        <img 
-                            src="${IMAGE_BASE_URL}w92${company.logo_path}" 
-                            alt="${company.name} Logo" 
-                            title="${company.name}" 
-                            class="h-10 w-auto object-contain"
-                            onerror="this.onerror=null; this.style.display='none';"
-                        />
-                    </div>
-                `).join('');
-            
-            const trailerUrl = trailerKey ? `https://www.youtube.com/watch?v=${trailerKey}` : '#';
-            const movies123Url = `https://ww7.123moviesfree.net/search/?q=${safeTitle}`;
-            const soap2dayUrl = `https://ww25.soap2day.day/?s=${safeTitle}`;
-            const gokuUrl = `https://goku.sx/search?keyword=${safeTitle}`;
-
-            const financialOrSeriesPanel = isMovie ? `
-                <div class="bg-gray-700 p-5 rounded-xl shadow-lg">
-                    <h4 class="text-xl font-bold text-white mb-3 flex items-center"><i class="fas fa-chart-line mr-3 text-tmdb-green"></i>Financials</h4>
-                    <div class="text-gray-300 space-y-2">
-                        <p><span class="font-semibold text-tmdb-green">Budget:</span> ${formatCurrency(details.budget)}</p>
-                        <p><span class="font-semibold text-tmdb-green">Revenue:</span> ${formatCurrency(details.revenue)}</p>
-                    </div>
-                </div>
-            ` : `
-                <div class="bg-gray-700 p-5 rounded-xl shadow-lg">
-                    <h4 class="text-xl font-bold text-white mb-3 flex items-center"><i class="fas fa-tv mr-3 text-tmdb-green"></i>Series Info</h4>
-                    <div class="text-gray-300 space-y-2">
-                        <p><span class="font-semibold text-tmdb-green">Seasons:</span> ${details.number_of_seasons || 'N/A'}</p>
-                        <p><span class="font-semibold text-tmdb-green">Episodes:</span> ${details.number_of_episodes || 'N/A'}</p>
-                    </div>
-                </div>
-            `;
-            
-            resultsContainer.innerHTML = `
-                <div class="w-full mb-6">
-                    <button onclick="goBackToGallery()" class="flex items-center text-tmdb-green hover:text-white transition duration-200 text-lg font-semibold">
-                        <i class="fas fa-arrow-left mr-2"></i>
-                        Back to ${appState.isDiscoveryMode ? 'Discovery' : 'Search Results'}
-                    </button>
+        <div class="p-6 md:p-10 ${backdropPath?'detail-content-area':''}">
+            <div class="flex flex-col lg:flex-row gap-8">
+                <div class="flex-shrink-0 w-full lg:w-80 ${backdropPath?'lg:mt-[-100px]':''}">
+                    <img src="${posterPath}" alt="${title} Poster" class="w-full h-auto object-cover rounded-xl shadow-2xl border-2 border-gray-800 aspect-[2/3]" onerror="this.onerror=null;this.src='https://placehold.co/500x750/181818/d4d4d4?text=${encodeURIComponent('Poster Unavailable')}';"/>
+                    <div class="mt-6 p-4 bg-card-bg rounded-xl flex items-center justify-center space-x-4 border border-gray-700">${createCircularRating(details.vote_average)}<div><p class="text-sm text-gray-400 uppercase tracking-wider">User Score</p><p class="text-xl font-bold text-white">${(details.vote_count||0).toLocaleString()} Votes</p></div></div>
                 </div>
                 
-                <div class="w-full bg-detail-card rounded-2xl shadow-2xl overflow-hidden p-6 md:p-10">
-                    <div class="flex flex-col lg:flex-row gap-8">
-                        
-                        <div class="flex-shrink-0 w-full lg:w-80">
-                            <img
-                                src="${posterPath}"
-                                alt="${title} Poster"
-                                class="w-full h-auto object-cover rounded-xl shadow-lg aspect-[2/3]"
-                                onerror="this.onerror=null; this.src='https://placehold.co/500x750/374151/ffffff?text=${encodeURIComponent('Poster Unavailable')}';"
-                            >
-                            <div class="mt-6 p-4 bg-gray-700 rounded-xl flex items-center justify-center space-x-4">
-                                ${createCircularRating(details.vote_average)}
-                                <div>
-                                    <p class="text-sm text-gray-400 uppercase tracking-wider">User Score</p>
-                                    <p class="text-xl font-bold text-white">${details.vote_count.toLocaleString()} Votes</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex-grow">
-                            <h2 class="text-4xl md:text-5xl font-extrabold text-white mb-2 leading-tight">${title}</h2>
-                            <p class="text-lg text-gray-400 italic mb-6">(${releaseDate}) - ${mediaTypeLabel}</p>
-                            
-                            <div class="flex flex-wrap items-center space-x-5 mb-8 text-sm md:text-base text-gray-300 border-b border-gray-600 pb-4">
-                                <span class="font-semibold text-tmdb-green">${durationString}</span>
-                                <span>\u2022</span>
-                                <span>${genres}</span>
-                                <span>\u2022</span>
-                                <span class="font-semibold text-yellow-300">${status}</span>
-                            </div>
-
-                            <h3 class="text-2xl font-bold text-tmdb-green mb-3">Synopsis</h3>
-                            <p class="text-gray-300 leading-relaxed mb-8 overview-scroll border border-gray-700 p-4 rounded-lg bg-gray-700/50">
-                                ${details.overview || 'No detailed overview available.'}
-                            </p>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                                <div class="bg-gray-700 p-5 rounded-xl shadow-lg">
-                                    <h4 class="text-xl font-bold text-white mb-3 flex items-center"><i class="fas fa-users mr-3 text-tmdb-green"></i>${crewRole} & Top Cast</h4>
-                                    <div class="text-gray-300 space-y-2">
-                                        <p><span class="font-semibold text-tmdb-green">${crewRole}:</span> ${crewName}</p>
-                                        <p><span class="font-semibold text-tmdb-green">Starring:</span> ${topCastList}</p>
-                                    </div>
-                                </div>
-
-                                ${financialOrSeriesPanel}
-                            </div>
-                            
-                            <h4 class="text-xl font-bold text-white mt-4 mb-3">Produced By</h4>
-                            <div class="flex flex-wrap gap-4 p-3 bg-gray-700/50 rounded-xl overflow-x-auto">
-                                ${productionLogos || '<p class="text-gray-400">No production logos found.</p>'}
-                            </div>
-                        </div>
+                <div class="flex-grow">
+                    <h2 class="text-4xl md:text-6xl font-extrabold text-white mb-2 leading-tight">${title}</h2>
+                    <p class="text-lg text-gray-400 italic mb-6">${releaseDateRaw} - ${mediaTypeLabel}</p>
+                    
+                    <div class="flex flex-wrap items-center space-x-5 mb-8 text-sm md:text-base text-gray-300 border-b border-gray-700 pb-4">
+                        <span class="font-semibold text-tmdb-green">${durationString}</span>
+                        <span>•</span>
+                        <span>${genres}</span>
+                        <span>•</span>
+                        <span class="font-semibold text-yellow-300">${status}</span>
                     </div>
                     
-                    <h3 class="text-2xl font-bold text-white mt-10 mb-5 border-t border-gray-600 pt-5">Watch Links</h3>
-                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <a href="${trailerUrl}" target="_blank" class="button-link ${trailerKey ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-500 cursor-not-allowed opacity-75'}" ${trailerKey ? '' : 'onclick="event.preventDefault()" title="Trailer not found." aria-disabled="true"'}>
-                            <i class="fab fa-youtube mr-2"></i> Trailer
-                        </a>
-                        <a href="${movies123Url}" target="_blank" class="button-link bg-indigo-600 hover:bg-indigo-700">
-                            <i class="fas fa-link mr-2"></i> 123movies
-                        </a>
-                        <a href="${soap2dayUrl}" target="_blank" class="button-link bg-teal-600 hover:bg-teal-700">
-                            <i class="fas fa-link mr-2"></i> soap2day
-                        </a>
-                        <a href="${gokuUrl}" target="_blank" class="button-link bg-orange-600 hover:bg-orange-700">
-                            <i class="fas fa-link mr-2"></i> goku
-                        </a>
-                    </div>
-                </div>
-            `;
-
-            appState.viewMode = 'detail';
-        }
-        
-        // --- State/View Management ---
-
-        function updateUrlHash() {
-            if (appState.viewMode === 'detail') {
-                window.location.hash = `${appState.detailType}-${appState.detailId}`;
-            } else {
-                window.history.pushState(null, null, ' '); 
-            }
-        }
-
-        function handleHashChange() {
-            const hash = window.location.hash.substring(1);
-            if (hash.startsWith('movie-') || hash.startsWith('tv-')) {
-                const [type, id] = hash.split('-');
-                appState.detailId = parseInt(id);
-                appState.detailType = type;
-                loadDetailView(appState.detailId, appState.detailType, '', false);
-            } else if (appState.viewMode === 'detail') {
-                goBackToGallery();
-            } else {
-                // Initial load
-                init();
-            }
-        }
-
-        async function loadDetailView(id, type, title, updateHistory = true) {
-            if (appState.isFetching) return;
-            appState.isFetching = true;
-
-            appState.detailId = id;
-            appState.detailType = type;
-            
-            resultsContainer.innerHTML = `
-                <div class="text-center p-8 w-full">
-                    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-tmdb-green mx-auto mb-4"></div>
-                    <p class="text-tmdb-green">Loading details...</p>
-                </div>
-            `;
-            
-            try {
-                const [details, trailerKey, credits] = await Promise.all([
-                    fetchMediaDetails(type, id),
-                    fetchMediaTrailerKey(type, id),
-                    fetchMediaCredits(type, id)
-                ]);
-                
-                renderMedia(details, trailerKey, credits, type);
-                
-                if (updateHistory) {
-                    updateUrlHash();
-                }
-                
-            } catch (error) {
-                console.error("Detail Fetch Error:", error);
-                showNotification(`Could not load details: ${error.message}`);
-                // If it fails, jump back to the gallery view
-                goBackToGallery(); 
-            } finally {
-                appState.isFetching = false;
-            }
-        }
-
-        async function loadContent(isPagination = false) {
-            if (appState.isFetching) return;
-            appState.viewMode = 'gallery';
-            
-            let mediaList, newTotalPages, galleryTitle;
-            const isNewLoad = !isPagination;
-
-            if (appState.isDiscoveryMode) {
-                const mode = appState.discoveryMode;
-                const config = DISCOVERY_CONFIG[mode];
-
-                if (isNewLoad) {
-                    appState.discoveryPage = 1;
-                    appState.discoveryResultsCache = [];
-                } else {
-                    appState.discoveryPage++;
-                }
-
-                if (appState.discoveryPage > appState.totalDiscoveryPages) return;
-                
-                appState.isFetching = true;
-                setLoading(isNewLoad, isPagination);
-
-                try {
-                    const result = await fetchDiscovery(mode, appState.discoveryPage);
-                    mediaList = result.results;
-                    appState.discoveryResultsCache.push(...mediaList);
-                    newTotalPages = result.totalPages;
-                    galleryTitle = config.title;
-                    appState.totalDiscoveryPages = newTotalPages;
-                } catch (error) {
-                    console.error("Discovery Error:", error);
-                    showNotification(`An error occurred while loading discovery content: ${error.message}`);
-                    if (isNewLoad) resultsContainer.innerHTML = '';
-                    appState.isFetching = false;
-                    setLoading(false, isPagination);
-                    return;
-                }
-            } else { 
-                if (!appState.currentQuery) return;
-                
-                if (isNewLoad) {
-                    appState.searchPage = 1;
-                    appState.searchResultsCache = [];
-                } else {
-                    appState.searchPage++;
-                }
-
-                if (appState.searchPage > appState.totalSearchPages) return;
-
-                appState.isFetching = true;
-                setLoading(isNewLoad, isPagination);
-
-                try {
-                    const result = await fetchSearchResults(appState.currentQuery, appState.searchPage);
-                    mediaList = result.results;
-                    appState.searchResultsCache.push(...mediaList);
-                    newTotalPages = result.totalPages;
-                    galleryTitle = `Search Results for "${appState.currentQuery}"`;
-                    appState.totalSearchPages = newTotalPages;
+                    <h3 class="text-2xl font-bold text-white mb-3 tracking-tight">Overview</h3>
+                    <p class="text-gray-400 leading-relaxed mb-8 overview-scroll border border-gray-700 p-4 rounded-lg bg-card-bg/70">${details.overview||'No detailed overview available.'}</p>
                     
-                    if (mediaList.length === 0 && isNewLoad) {
-                        resultsContainer.innerHTML = `<p class="text-gray-400 text-xl p-8 w-full text-center">Sorry, no results were found for "${appState.currentQuery}". Please try a different name.</p>`;
-                        appState.isFetching = false;
-                        setLoading(false, isPagination);
-                        return;
-                    }
-                } catch (error) {
-                    console.error("Search Error:", error);
-                    showNotification(`An error occurred while fetching search results: ${error.message}`);
-                    if (isNewLoad) resultsContainer.innerHTML = '';
-                    appState.isFetching = false;
-                    setLoading(false, isPagination);
-                    return;
-                }
-            }
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                        <div class="bg-card-bg p-5 rounded-xl shadow-lg border border-gray-700">
+                            <h4 class="text-xl font-bold text-white mb-3 flex items-center"><i class="fas fa-users mr-3 text-tmdb-green"></i>${crewRole} & Top Cast</h4>
+                            <div class="text-gray-300 space-y-2">
+                                <p><span class="font-semibold text-tmdb-green">${crewRole}:</span> ${crewName}</p>
+                                <p><span class="font-semibold text-tmdb-green">Starring:</span> ${topCast}</p>
+                            </div>
+                        </div>
+                        ${financialOrSeries}
+                    </div>
+                    
+                    <h4 class="text-xl font-bold text-white mt-4 mb-3 border-t border-gray-700 pt-5">Production Companies</h4>
+                    <div class="flex flex-wrap gap-4 p-3 bg-card-bg/70 rounded-xl overflow-x-auto">${productionLogos||'<p class="text-gray-400">No production logos found.</p>'}</div>
+                </div>
+            </div>
 
-            renderGallery(mediaList, isNewLoad, galleryTitle);
-            appState.isFetching = false;
-            setLoading(false, isPagination);
-            updateUrlHash();
-        }
+            <h3 class="text-2xl font-bold text-white mt-10 mb-5 border-t border-gray-700 pt-5">Streaming/Link Options</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                <a href="${trailerUrl}" target="_blank" class="button-link ${trailerKey?'bg-red-600 hover:bg-red-700':'bg-gray-700 cursor-not-allowed opacity-75'}" ${trailerKey?'':'onclick="event.preventDefault()" title="Trailer not found." aria-disabled="true"'}><i class="fab fa-youtube mr-2"></i> Trailer</a>
+                <a href="${movies123Url}" target="_blank" class="button-link bg-indigo-600 hover:bg-indigo-700"><i class="fas fa-video mr-2"></i> 123movies</a>
+                <a href="${soap2dayUrl}" target="_blank" class="button-link bg-teal-600 hover:bg-teal-700"><i class="fas fa-video mr-2"></i> soap2day</a>
+                <a href="${gokuUrl}" target="_blank" class="button-link bg-orange-600 hover:bg-orange-700"><i class="fas fa-video mr-2"></i> goku</a>
+            </div>
+        </div>
+    </div>
+    `;
+    appState.viewMode='detail';
+    document.getElementById('backBtn').addEventListener('click',goBackToGallery)
+};
 
-        function startSearchFromInput() {
-            const query = mediaInput.value.trim();
-            if (!query) {
-                appState.isDiscoveryMode = true;
-                loadContent(false);
-                return;
-            }
-            
-            appState.isDiscoveryMode = false;
-            appState.currentQuery = query;
-            loadContent(false);
-        }
+const updateUrlHash=()=>{if(appState.viewMode==='detail')window.location.hash=`${appState.detailType}-${appState.detailId}`;else window.history.pushState(null,null,' ');};
+const handleHashChange=()=>{const h=window.location.hash.substring(1);if(h.startsWith('movie-')||h.startsWith('tv-')){const [type,id]=h.split('-');appState.detailId=parseInt(id);appState.detailType=type;loadDetailView(appState.detailId,appState.detailType,'',false)}else if(appState.viewMode==='detail')goBackToGallery();else init();};
 
-        function changeDiscoveryMode(newMode) {
-            if (appState.discoveryMode === newMode && appState.isDiscoveryMode) return;
+const loadDetailView=async(id,type,title='',updateHistory=true)=>{if(appState.isFetching)return;appState.isFetching=true;appState.detailId=id;appState.detailType=type;resultsContainer.innerHTML='<div class="text-center p-8 w-full"><div class="animate-spin rounded-full h-10 w-10 border-b-2 border-tmdb-green mx-auto mb-4"></div><p class="text-tmdb-green">Loading details...</p></div>';try{const [details,trailerKey,credits]=await Promise.all([fetchMediaDetails(type,id),fetchMediaVideos(type,id),fetchMediaCredits(type,id)]);renderMedia(details,trailerKey,credits,type);if(updateHistory)updateUrlHash()}catch(e){console.error(e);showNotification(`Could not load details: ${e.message}`);goBackToGallery()}finally{appState.isFetching=false}};
 
-            appState.isDiscoveryMode = true;
-            appState.discoveryMode = newMode;
-            
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.querySelector(`[data-type="${newMode}"]`).classList.add('active');
+const loadContent=async(isPagination=false)=>{if(appState.isFetching)return;appState.viewMode='gallery';let mediaList,newTotal,galleryTitle;const isNewLoad=!isPagination;if(appState.isDiscoveryMode){const mode=appState.discoveryMode;const cfg=DISCOVERY_CONFIG[mode];if(isNewLoad){appState.discoveryPage=1;appState.discoveryResultsCache=[]}else appState.discoveryPage++;if(appState.discoveryPage>appState.totalDiscoveryPages)return;appState.isFetching=true;setLoading(isNewLoad,isPagination);try{const res=await fetchDiscovery(mode,appState.discoveryPage);mediaList=res.results;appState.discoveryResultsCache.push(...mediaList);newTotal=res.totalPages;galleryTitle=cfg.title;appState.totalDiscoveryPages=newTotal}catch(e){console.error(e);showNotification(`An error occurred while loading discovery content: ${e.message}`);if(isNewLoad)resultsContainer.innerHTML='';appState.isFetching=false;setLoading(false,isPagination);return}}else{if(!appState.currentQuery)return; if(isNewLoad){appState.searchPage=1;appState.searchResultsCache=[]}else appState.searchPage++;if(appState.searchPage>appState.totalSearchPages)return;appState.isFetching=true;setLoading(isNewLoad,isPagination);try{const res=await fetchSearchResults(appState.currentQuery,appState.searchPage);mediaList=res.results;appState.searchResultsCache.push(...mediaList);newTotal=res.totalPages;galleryTitle=`Search Results for \"${appState.currentQuery}\"`;appState.totalSearchPages=newTotal;if(mediaList.length===0&&isNewLoad){resultsContainer.innerHTML=`<p class="text-gray-400 text-xl p-8 w-full text-center">Sorry, no results were found for \"${appState.currentQuery}\". Please try a different name.</p>`;appState.isFetching=false;setLoading(false,isPagination);return}}catch(e){console.error(e);showNotification(`An error occurred while fetching search results: ${e.message}`);if(isNewLoad)resultsContainer.innerHTML='';appState.isFetching=false;setLoading(false,isPagination);return}}renderGallery(mediaList,isNewLoad,galleryTitle);appState.isFetching=false;setLoading(false,isPagination);updateUrlHash()};
 
-            loadContent(false);
-        }
+const startSearchFromInput=()=>{const q=mediaInput.value.trim();if(!q){appState.isDiscoveryMode=true;loadContent(false);return}appState.isDiscoveryMode=false;appState.currentQuery=q;loadContent(false)};
 
-        function goBackToGallery() {
-            appState.viewMode = 'gallery';
-            
-            const currentCache = appState.isDiscoveryMode ? appState.discoveryResultsCache : appState.searchResultsCache;
-            const galleryTitle = appState.isDiscoveryMode 
-                ? DISCOVERY_CONFIG[appState.discoveryMode].title 
-                : `Search Results for "${appState.currentQuery}"`;
+const changeDiscoveryMode=newMode=>{if(appState.discoveryMode===newMode&&appState.isDiscoveryMode)return;appState.isDiscoveryMode=true;appState.discoveryMode=newMode;document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));document.querySelector(`[data-type="${newMode}"]`)?.classList.add('active');loadContent(false)};
 
-            if (currentCache.length === 0 && appState.isDiscoveryMode) {
-                 // Fallback if cache is somehow empty (e.g., initial load failure)
-                 loadContent(false);
-                 return;
-            }
+const goBackToGallery=()=>{appState.viewMode='gallery';const cache=appState.isDiscoveryMode?appState.discoveryResultsCache:appState.searchResultsCache;const galleryTitle=appState.isDiscoveryMode?DISCOVERY_CONFIG[appState.discoveryMode].title:`Search Results for \"${appState.currentQuery}\"`;if(cache.length===0&&appState.isDiscoveryMode){loadContent(false);return}resultsContainer.innerHTML='';renderGallery(cache,true,galleryTitle);const totalPages=appState.isDiscoveryMode?appState.totalDiscoveryPages:appState.searchPage<appState.totalSearchPages;const currentPage=appState.isDiscoveryMode?appState.discoveryPage:appState.searchPage;if(currentPage>=totalPages)document.getElementById('mediaGallery').insertAdjacentHTML('beforeend','<p class="text-gray-400 text-center w-full mt-8 pb-12">-- End of Results --</p>');updateUrlHash();window.scrollTo(0,0)};
 
-            resultsContainer.innerHTML = '';
-            renderGallery(currentCache, true, galleryTitle); 
-            
-            const totalPages = appState.isDiscoveryMode ? appState.totalDiscoveryPages : appState.totalSearchPages;
-            const currentPage = appState.isDiscoveryMode ? appState.discoveryPage : appState.searchPage;
-            if (currentPage >= totalPages) {
-                document.getElementById('mediaGallery').insertAdjacentHTML('beforeend', '<p class="text-gray-400 text-center w-full mt-8 pb-12">-- End of Results --</p>');
-            }
-            
-            updateUrlHash();
-            window.scrollTo(0, 0); 
-        }
+const init=()=>{const h=window.location.hash.substring(1);if(h.startsWith('movie-')||h.startsWith('tv-')){const [type,id]=h.split('-');appState.detailId=parseInt(id);appState.detailType=type;loadDetailView(appState.detailId,appState.detailType,'',false)}else loadContent(false)};
 
-        function init() {
-            const hash = window.location.hash.substring(1);
-            if (hash.startsWith('movie-') || hash.startsWith('tv-')) {
-                const [type, id] = hash.split('-');
-                appState.detailId = parseInt(id);
-                appState.detailType = type;
-                loadDetailView(appState.detailId, appState.detailType, '', false);
-            } else {
-                loadContent(false);
-            }
-        }
+mediaInput.addEventListener('input',handleAutocomplete);
+mediaInput.addEventListener('keydown',e=>{if(e.key==='Enter'){startSearchFromInput();autocompleteResults.classList.add('hidden')}});
 
-        // --- Event Listeners ---
+document.getElementById('discoveryTabs').addEventListener('click',e=>{const btn=e.target.closest('.tab-button');if(btn)changeDiscoveryMode(btn.dataset.type)});
+document.getElementById('resultsContainer').addEventListener('click',e=>{const card=e.target.closest('[data-id]');if(card)loadDetailView(card.dataset.id,card.dataset.type,card.dataset.title,true)});
 
-        mediaInput.addEventListener('input', handleAutocomplete);
-        mediaInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                startSearchFromInput();
-                autocompleteResults.classList.add('hidden');
-            }
-        });
+$('searchBtn').addEventListener('click',startSearchFromInput);
+window.addEventListener('scroll',()=>{if(appState.isFetching||appState.viewMode!=='gallery'||!document.getElementById('mediaGallery'))return;const scrollThreshold=800;const scrollPosition=window.innerHeight+window.scrollY;const totalHeight=document.body.offsetHeight;if(scrollPosition>=totalHeight-scrollThreshold){const hasMore=appState.isDiscoveryMode?appState.discoveryPage<appState.totalDiscoveryPages:appState.searchPage<appState.totalSearchPages;if(hasMore)loadContent(true)}});
 
-        window.addEventListener('scroll', () => {
-            if (appState.isFetching || appState.viewMode !== 'gallery' || !document.getElementById('mediaGallery')) return;
+window.addEventListener('popstate',handleHashChange);
+window.addEventListener('hashchange',handleHashChange);
+document.addEventListener('click',e=>{if(!mediaInput.contains(e.target)&&!autocompleteResults.contains(e.target))autocompleteResults.classList.add('hidden')});
+notifyOk.addEventListener('click',hideNotification);
 
-            const scrollThreshold = 800;
-            const scrollPosition = window.innerHeight + window.scrollY;
-            const totalHeight = document.body.offsetHeight;
-
-            if (scrollPosition >= totalHeight - scrollThreshold) {
-                const hasMorePages = appState.isDiscoveryMode 
-                    ? appState.discoveryPage < appState.totalDiscoveryPages 
-                    : appState.searchPage < appState.totalSearchPages;
-
-                if (hasMorePages) {
-                    loadContent(true);
-                }
-            }
-        });
-        
-        window.addEventListener('popstate', handleHashChange);
-        document.addEventListener('click', (e) => {
-            if (!mediaInput.contains(e.target) && !autocompleteResults.contains(e.target)) {
-                autocompleteResults.classList.add('hidden');
-            }
-        });
-
-        // Initialize the app
-        init();
-    </script>
+init();
+</script>
 </body>
 </html>
